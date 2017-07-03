@@ -1,0 +1,7 @@
+Exchange,Active_Commission,Passive_Commission,Margin_Trading,Margin_Limit,Margin_Rate,USD_Deposit_Type,USD_Withdrawal_Type,USD_Deposit_Pct,USD_Withdrawal_Pct,USD_Deposit_Dollar,USD_Withdrawal_Dollar,USD_Deposit_Time_Mins,USD_Withdrawal_Time_Mins,USD_Deposit_Daily_Max,USD_Withdrawal_Daily_Max,BTC_Deposit,BTC_Withdrawal,BTC_Deposit_Time_Mins,BTC_Withdrawal_Time_Mins
+Bitstamp,0.0025,0.0025,0,,,Wire,Wire,0.0005,0.0009,0,0,7200,10080,10000000,10000000,0,0,10,0
+Kraken,0.0025,0.0016,1,750000,0.0001,Wire,Wire,0,0,10,60,7200,10080,500000,100000,0,0.0025,10,0
+GDAX,0.0025,0,1,10000,0,Wire,Wire,0,0,0,0,7200,10080,250000,10000,0,0,10,0
+Poloniex,0.0025,0.0015,1,1000000,0.001,Wire,Wire,0,0,0,0,7200,10080,10000000,10000000,0,0,10,0
+Bitfinex,0.002,0.001,1,1000000,0.0007,Wire,Wire,0.001,0.001,0,0,7200,10080,10000000,10000000,0,0.0004,10,0
+QuadrigaCX,0.005,0.005,0,,,Wire,Wire,0,0,0,0,7200,10080,500000,500000,0,0,10,0
