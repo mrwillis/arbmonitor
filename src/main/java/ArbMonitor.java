@@ -18,11 +18,13 @@ import org.slf4j.LoggerFactory;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Created by julia on 7/3/2017.
@@ -30,143 +32,114 @@ import java.util.*;
 public class ArbMonitor {
     private static final Logger Logger = LoggerFactory.getLogger(ArbMonitor.class);
 
-    private HashMap<String, FeeSchedule> ExchangeInfo;
-
-    private List<MarketDataService> ExchangeServices;
-    private List<Exchange> Exchanges;
+    private List<String> TargetExchangeNames;
+    private HashMap<String, List<FeeSchedule>> FeeSchedules;
+    private HashMap<String, MarketDataService> ExchangeServices;
+    private HashMap<String, Exchange> Exchanges;
+    private HashMap<String, List<CurrencyPair>> AvailablePairs;
 
     public ArbMonitor() throws URISyntaxException,
             IOException {
 
-        this.Exchanges = new ArrayList<>();
-        this.Exchanges.add(ExchangeFactory.INSTANCE.createExchange(BitstampExchange.class.getName()));
-        this.Exchanges.add(ExchangeFactory.INSTANCE.createExchange(KrakenExchange.class.getName()));
-        this.Exchanges.add(ExchangeFactory.INSTANCE.createExchange(GDAXExchange.class.getName()));
-        this.Exchanges.add(ExchangeFactory.INSTANCE.createExchange(PoloniexExchange.class.getName()));
-        this.Exchanges.add(ExchangeFactory.INSTANCE.createExchange(BitfinexExchange.class.getName()));
-        this.Exchanges.add(ExchangeFactory.INSTANCE.createExchange(QuadrigaCxExchange.class.getName()));
-        this.Exchanges.add(ExchangeFactory.INSTANCE.createExchange(BTCEExchange.class.getName()));
-        this.Exchanges.add(ExchangeFactory.INSTANCE.createExchange(BittrexExchange.class.getName()));
+        this.TargetExchangeNames = new ArrayList<>();
+        this.TargetExchangeNames.add("bitstamp");
+        this.TargetExchangeNames.add("bitfinex");
+        this.TargetExchangeNames.add("bittrex");
+        this.TargetExchangeNames.add("btce");
+        this.TargetExchangeNames.add("gdax");
+        this.TargetExchangeNames.add("kraken");
+        this.TargetExchangeNames.add("poloinex");
+        this.TargetExchangeNames.add("quadrigacx");
 
-        this.ExchangeServices = new ArrayList<>();
-        for (Exchange e:
-             this.Exchanges) {
-            this.ExchangeServices.add(e.getMarketDataService());
+        this.Exchanges = new HashMap<>();
+        this.Exchanges.put("bitstamp", ExchangeFactory.INSTANCE.createExchange(BitstampExchange.class.getName()));
+        this.Exchanges.put("kraken", ExchangeFactory.INSTANCE.createExchange(KrakenExchange.class.getName()));
+        this.Exchanges.put("gdax", ExchangeFactory.INSTANCE.createExchange(GDAXExchange.class.getName()));
+        this.Exchanges.put("poloinex", ExchangeFactory.INSTANCE.createExchange(PoloniexExchange.class.getName()));
+        this.Exchanges.put("bitfinex", ExchangeFactory.INSTANCE.createExchange(BitfinexExchange.class.getName()));
+        this.Exchanges.put("quadrigacx", ExchangeFactory.INSTANCE.createExchange(QuadrigaCxExchange.class.getName()));
+        this.Exchanges.put("btce", ExchangeFactory.INSTANCE.createExchange(BTCEExchange.class.getName()));
+        this.Exchanges.put("bittrex", ExchangeFactory.INSTANCE.createExchange(BittrexExchange.class.getName()));
+
+        this.ExchangeServices = new HashMap<>();
+        this.AvailablePairs = new HashMap<>();
+        for (Map.Entry<String, Exchange> entry : this.Exchanges.entrySet()) {
+            this.ExchangeServices.put(entry.getKey(), entry.getValue().getMarketDataService());
+            this.AvailablePairs.put(entry.getKey(), entry.getValue().getExchangeSymbols());
         }
 
-        this.ExchangeInfo = this.RetrieveExchangeInformation();
+        this.FeeSchedules = this.RetrieveExchangeInformation(this.TargetExchangeNames);
     }
 
-    private HashMap<String, FeeSchedule> RetrieveExchangeInformation() throws FileNotFoundException,
+    private HashMap<String, List<FeeSchedule>> RetrieveExchangeInformation(List<String> exchangeList) throws
+            FileNotFoundException,
             URISyntaxException {
+        HashMap<String, List<FeeSchedule>> exchangeInfo = new HashMap<>();
 
-        List<String> exchanges = new ArrayList<>();
-        exchanges.add("bitfinex");
-        exchanges.add("bitstamp");
-        exchanges.add("bittrex");
-        exchanges.add("btce");
-        exchanges.add("gdax");
-        exchanges.add("kraken");
-        exchanges.add("poloinex");
-        exchanges.add("quadrigacx");
-
-        HashMap<String, FeeSchedule> exchangeInfo = new HashMap<>();
-
-        for (String exchange: exchanges) {
+        for (String exchange : exchangeList) {
             URL resource = ArbMonitor.class.getResource(exchange + "_fees.csv");
             String path = null;
             path = Paths.get(resource.toURI()).toFile().getPath();
             List<FeeSchedule> beans = new CsvToBeanBuilder(new FileReader(path)).withType(FeeSchedule
                     .class).build().parse();
-            for (FeeSchedule i : beans) {
-                exchangeInfo.put(i.getExchange(), i);
-            }
+            exchangeInfo.put(exchange, beans);
         }
         return exchangeInfo;
     }
 
     /**
-     * Gets the latest quotes from each of the exchanges. The entries may be less than the number of exchanges if
-     * data is not available.
+     * Gets the latest quotes from each of the exchanges for relevant pairs The entries may be less than the number of
+     * total specific pairs specified in the CSV files if the data is not available.
      *
      * @return A HashMap with key: exchange and value: a Quote object
      */
-    private HashMap<String, Quote> getCurrentQuotes() {
-        HashMap<String, Quote> quotes = new HashMap<>();
+    private List<Quote> GetQuotesFromExchange(String exchangeName) throws PairNotSupportedException, IOException {
+        List<Quote> quotes = new ArrayList<>();
+        MarketDataService targetMds = this.ExchangeServices.get(exchangeName);
+        List<FeeSchedule> targetSchedules = this.FeeSchedules.get(exchangeName);
+        List<CurrencyPair> availablePairs = this.AvailablePairs.get(exchangeName);
 
-        try {
-            Ticker bitstampTicker = this.BitstampMarketDataService.getTicker(CurrencyPair.BTC_USD);
-            quotes.put("Bitstamp", new Quote(bitstampTicker.getBid(), bitstampTicker.getAsk()));
-        } catch (Exception e) {
-            Logger.warn("Bitstamp data not available");
-        }
-
-        try {
-            Ticker krakenTicker = this.KrakenMarketDataService.getTicker(CurrencyPair.BTC_USD);
-            quotes.put("Kraken", new Quote(krakenTicker.getBid(), krakenTicker.getAsk()));
-        } catch (Exception e) {
-            Logger.warn("Kraken data not available");
-        }
-
-        try {
-            Ticker gdax = this.GDAXMarketDataService.getTicker(CurrencyPair.BTC_USD);
-            quotes.put("GDAX", new Quote(gdax.getBid(), gdax.getAsk()));
-        } catch (Exception e) {
-            Logger.warn("GDAX data not available");
-        }
-
-        try {
-            Ticker poloinex = this.PoloniexMarketDataService.getTicker(new CurrencyPair("BTC", "USDT"));
-            quotes.put("Poloniex", new Quote(poloinex.getBid(), poloinex.getAsk()));
-        } catch (Exception e) {
-            Logger.warn("Poloinex data not available");
-        }
-
-        try {
-            Ticker bitfinex = this.BitfinexMarketDataService.getTicker(CurrencyPair.BTC_USD);
-            quotes.put("Bitfinex", new Quote(bitfinex.getBid(), bitfinex.getAsk()));
-        } catch (Exception e) {
-            Logger.warn("Bitfinex data not available");
-        }
-
-        try {
-            Ticker quadrigacx = this.QuadrigaCxMarketDataService.getTicker(CurrencyPair.BTC_USD);
-            quotes.put("QuadrigaCX", new Quote(quadrigacx.getBid(), quadrigacx.getAsk()));
-        } catch (Exception e) {
-            Logger.warn("QuadrigaCX data not available");
+        for (FeeSchedule schedule :
+                targetSchedules) {
+            String baseCcy = schedule.getBaseCurrency();
+            String quoteCcy = schedule.getQuoteCurrency();
+            CurrencyPair pair = new CurrencyPair(baseCcy, quoteCcy);
+            Quote quote = null;
+            Ticker tick;
+            if (availablePairs.contains(pair)) {
+                tick = targetMds.getTicker(pair);
+                quote = new Quote(baseCcy, quoteCcy, tick.getBid(), tick.getAsk());
+            } else if (availablePairs.contains(new CurrencyPair(quoteCcy, baseCcy))) {
+                // Try to flip the pair
+                CurrencyPair reversePair = new CurrencyPair(quoteCcy, baseCcy);
+                tick = targetMds.getTicker(reversePair);
+                quote = new Quote(quoteCcy, baseCcy, tick.getBid(), tick.getAsk());
+            } else {
+                throw new PairNotSupportedException("The pair: " + baseCcy + "/" + quoteCcy + "or its reverse is not " +
+                        "supported" +
+                        "in the API. Please remove it from the file. ");
+            }
+            quotes.add(quote);
         }
         return quotes;
     }
 
     void Monitor() throws InterruptedException {
-        Logger.error("hello");
 
         while (true) {
-            HashMap<String, Quote> quotes = getCurrentQuotes();
-            for (Map.Entry<String, Quote> quoteOne : quotes.entrySet()) {
-                for (Map.Entry<String, Quote> quoteTwo : quotes.entrySet()) {
-                    if (Objects.equals(quoteOne.getKey(), quoteTwo.getKey())) break;
-                    BigDecimal spread, spreadFeeAdjusted;
-                    BigDecimal bid = quoteOne.getValue().getBid();
-                    BigDecimal ask = quoteTwo.getValue().getAsk();
-                    FeeSchedule toBuyExchange = this.ExchangeInfo.get(quoteTwo.getKey());
-                    FeeSchedule toSellExchange = this.ExchangeInfo.get(quoteOne.getKey());
-                    spread = bid.subtract(ask).divide(ask, BigDecimal.ROUND_HALF_EVEN);
-                    spreadFeeAdjusted = spread.subtract(toBuyExchange.getActiveCommission()).subtract(toSellExchange
-                            .getActiveCommission());
-
-                    if (spreadFeeAdjusted.compareTo(new BigDecimal("0")) == 1 && toSellExchange.allowsMarginTrading) {
-                        Logger.warn("Opportunity exists. You can immediately buy on {} at LOWEST ASK: {} and short " +
-                                        "sell on {} " +
-                                        "at HIGHEST BID: {} and earn {}%. ",
-                                toBuyExchange.exchange, ask, toSellExchange.exchange, bid, spreadFeeAdjusted.multiply
-                                        (new BigDecimal("100.000")));
-                    }
+            HashMap<String, List<Quote>> quotes = new HashMap<>();
+            for (String exchange :
+                    this.TargetExchangeNames) {
+                try {
+                    quotes.put(exchange, this.GetQuotesFromExchange(exchange));
+                } catch (PairNotSupportedException pairNotSupportedException) {
+                    Logger.warn(pairNotSupportedException.getMessage());
+                } catch (Exception e) {
+                    // Swallow any IO or disconnection errors and log.
+                    Logger.error(e.getMessage(), e);
                 }
             }
             Thread.sleep(5000);
         }
     }
-
-
 }

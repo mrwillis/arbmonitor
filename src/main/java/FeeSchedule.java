@@ -1,5 +1,7 @@
 import com.opencsv.bean.CsvBindByName;
 
+import java.math.BigDecimal;
+
 /**
  * Created by julia on 7/3/2017.
  */
@@ -12,7 +14,10 @@ public class FeeSchedule {
     @CsvBindByName(column = "Quote")
     private String QuoteCurrency;
     @CsvBindByName(column = "Maker")
-    private double MakerFee;
+    private BigDecimal MakerFee;
+
+    @CsvBindByName(column = "Taker")
+    private double TakerFee;
 
     public String getExchange() {
         return Exchange;
@@ -38,11 +43,11 @@ public class FeeSchedule {
         QuoteCurrency = quoteCurrency;
     }
 
-    public double getMakerFee() {
+    public BigDecimal getMakerFee() {
         return MakerFee;
     }
 
-    public void setMakerFee(double makerFee) {
+    public void setMakerFee(BigDecimal makerFee) {
         MakerFee = makerFee;
     }
 
@@ -53,7 +58,4 @@ public class FeeSchedule {
     public void setTakerFee(double takerFee) {
         TakerFee = takerFee;
     }
-
-    @CsvBindByName(column = "Taker")
-    public double TakerFee;
 }
