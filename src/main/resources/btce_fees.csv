@@ -1,0 +1,7 @@
+Exchange,Base,Quote,Maker,Taker
+btce,LTC,BTC,0.002,0.002
+btce,DSH,BTC,0.002,0.002
+btce,DSH,LTC,0.002,0.002
+btce,DSH,ETH,0.002,0.002
+btce,ETH,BTC,0.002,0.002
+btce,ETH,LTC,0.002,0.002

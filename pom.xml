@@ -26,6 +26,11 @@
         </dependency>
         <dependency>
             <groupId>org.knowm.xchange</groupId>
+            <artifactId>xchange-bittrex</artifactId>
+            <version>4.2.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.knowm.xchange</groupId>
             <artifactId>xchange-quadrigacx</artifactId>
             <version>4.2.0</version>
         </dependency>
@@ -42,6 +47,11 @@
         <dependency>
             <groupId>org.knowm.xchange</groupId>
             <artifactId>xchange-poloniex</artifactId>
+            <version>4.2.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.knowm.xchange</groupId>
+            <artifactId>xchange-btce</artifactId>
             <version>4.2.0</version>
         </dependency>
         <dependency>

@@ -3,6 +3,8 @@ import org.knowm.xchange.Exchange;
 import org.knowm.xchange.ExchangeFactory;
 import org.knowm.xchange.bitfinex.v1.BitfinexExchange;
 import org.knowm.xchange.bitstamp.BitstampExchange;
+import org.knowm.xchange.bittrex.v1.BittrexExchange;
+import org.knowm.xchange.btce.v3.BTCEExchange;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.gdax.GDAXExchange;
@@ -15,64 +17,72 @@ import org.slf4j.LoggerFactory;
 
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * Created by julia on 7/3/2017.
  */
 public class ArbMonitor {
-    public static final Logger Logger = LoggerFactory.getLogger(ArbMonitor.class);
+    private static final Logger Logger = LoggerFactory.getLogger(ArbMonitor.class);
 
-    public HashMap<String, BigDecimal> UsdBalances;
-    public HashMap<String, BigDecimal> BitcoinBalances;
-    public HashMap<String, ExchangeInformation> ExchangeInfo;
-    private Exchange BitstampExchange;
-    private Exchange KrakenExchange;
-    private Exchange GDAXExchange;
-    private Exchange PoloinexExchange;
-    private Exchange BitfinexExchange;
-    private Exchange QuadrigaCxExchange;
-    private MarketDataService BitstampMarketDataService;
-    private MarketDataService KrakenMarketDataService;
-    private MarketDataService GDAXMarketDataService;
-    private MarketDataService PoloniexMarketDataService;
-    private MarketDataService BitfinexMarketDataService;
-    private MarketDataService QuadrigaCxMarketDataService;
+    private HashMap<String, FeeSchedule> ExchangeInfo;
 
-    public ArbMonitor() throws URISyntaxException, FileNotFoundException {
-        this.BitstampExchange = ExchangeFactory.INSTANCE.createExchange(BitstampExchange.class.getName());
-        this.KrakenExchange = ExchangeFactory.INSTANCE.createExchange(KrakenExchange.class.getName());
-        this.GDAXExchange = ExchangeFactory.INSTANCE.createExchange(GDAXExchange.class.getName());
-        this.PoloinexExchange = ExchangeFactory.INSTANCE.createExchange(PoloniexExchange.class.getName());
-        this.BitfinexExchange = ExchangeFactory.INSTANCE.createExchange(BitfinexExchange.class.getName());
-        this.QuadrigaCxExchange = ExchangeFactory.INSTANCE.createExchange(QuadrigaCxExchange.class.getName());
+    private List<MarketDataService> ExchangeServices;
+    private List<Exchange> Exchanges;
 
-        this.BitstampMarketDataService = this.BitstampExchange.getMarketDataService();
-        this.KrakenMarketDataService = this.KrakenExchange.getMarketDataService();
-        this.GDAXMarketDataService = this.GDAXExchange.getMarketDataService();
-        this.PoloniexMarketDataService = this.PoloinexExchange.getMarketDataService();
-        this.BitfinexMarketDataService = this.BitfinexExchange.getMarketDataService();
-        this.QuadrigaCxMarketDataService = this.QuadrigaCxExchange.getMarketDataService();
+    public ArbMonitor() throws URISyntaxException,
+            IOException {
 
-        this.UsdBalances = new HashMap<>();
-        this.BitcoinBalances = new HashMap<>();
-        this.ExchangeInfo = new HashMap<>();
+        this.Exchanges = new ArrayList<>();
+        this.Exchanges.add(ExchangeFactory.INSTANCE.createExchange(BitstampExchange.class.getName()));
+        this.Exchanges.add(ExchangeFactory.INSTANCE.createExchange(KrakenExchange.class.getName()));
+        this.Exchanges.add(ExchangeFactory.INSTANCE.createExchange(GDAXExchange.class.getName()));
+        this.Exchanges.add(ExchangeFactory.INSTANCE.createExchange(PoloniexExchange.class.getName()));
+        this.Exchanges.add(ExchangeFactory.INSTANCE.createExchange(BitfinexExchange.class.getName()));
+        this.Exchanges.add(ExchangeFactory.INSTANCE.createExchange(QuadrigaCxExchange.class.getName()));
+        this.Exchanges.add(ExchangeFactory.INSTANCE.createExchange(BTCEExchange.class.getName()));
+        this.Exchanges.add(ExchangeFactory.INSTANCE.createExchange(BittrexExchange.class.getName()));
 
-        URL resource = ArbMonitor.class.getResource("Exchange DB.csv");
-        String path = null;
-        path = Paths.get(resource.toURI()).toFile().getPath();
-        List<ExchangeInformation> beans = new CsvToBeanBuilder(new FileReader(path)).withType(ExchangeInformation
-                .class).build().parse();
-        for (ExchangeInformation i : beans) {
-            this.ExchangeInfo.put(i.exchange, i);
+        this.ExchangeServices = new ArrayList<>();
+        for (Exchange e:
+             this.Exchanges) {
+            this.ExchangeServices.add(e.getMarketDataService());
         }
+
+        this.ExchangeInfo = this.RetrieveExchangeInformation();
+    }
+
+    private HashMap<String, FeeSchedule> RetrieveExchangeInformation() throws FileNotFoundException,
+            URISyntaxException {
+
+        List<String> exchanges = new ArrayList<>();
+        exchanges.add("bitfinex");
+        exchanges.add("bitstamp");
+        exchanges.add("bittrex");
+        exchanges.add("btce");
+        exchanges.add("gdax");
+        exchanges.add("kraken");
+        exchanges.add("poloinex");
+        exchanges.add("quadrigacx");
+
+        HashMap<String, FeeSchedule> exchangeInfo = new HashMap<>();
+
+        for (String exchange: exchanges) {
+            URL resource = ArbMonitor.class.getResource(exchange + "_fees.csv");
+            String path = null;
+            path = Paths.get(resource.toURI()).toFile().getPath();
+            List<FeeSchedule> beans = new CsvToBeanBuilder(new FileReader(path)).withType(FeeSchedule
+                    .class).build().parse();
+            for (FeeSchedule i : beans) {
+                exchangeInfo.put(i.getExchange(), i);
+            }
+        }
+        return exchangeInfo;
     }
 
     /**
@@ -128,7 +138,8 @@ public class ArbMonitor {
         return quotes;
     }
 
-    void monitor() throws InterruptedException {
+    void Monitor() throws InterruptedException {
+        Logger.error("hello");
 
         while (true) {
             HashMap<String, Quote> quotes = getCurrentQuotes();
@@ -138,8 +149,8 @@ public class ArbMonitor {
                     BigDecimal spread, spreadFeeAdjusted;
                     BigDecimal bid = quoteOne.getValue().getBid();
                     BigDecimal ask = quoteTwo.getValue().getAsk();
-                    ExchangeInformation toBuyExchange = this.ExchangeInfo.get(quoteTwo.getKey());
-                    ExchangeInformation toSellExchange = this.ExchangeInfo.get(quoteOne.getKey());
+                    FeeSchedule toBuyExchange = this.ExchangeInfo.get(quoteTwo.getKey());
+                    FeeSchedule toSellExchange = this.ExchangeInfo.get(quoteOne.getKey());
                     spread = bid.subtract(ask).divide(ask, BigDecimal.ROUND_HALF_EVEN);
                     spreadFeeAdjusted = spread.subtract(toBuyExchange.getActiveCommission()).subtract(toSellExchange
                             .getActiveCommission());
@@ -156,5 +167,6 @@ public class ArbMonitor {
             Thread.sleep(5000);
         }
     }
+
 
 }
