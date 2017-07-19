@@ -10,7 +10,6 @@ import org.knowm.xchange.dto.marketdata.Ticker;
 import org.knowm.xchange.gdax.GDAXExchange;
 import org.knowm.xchange.kraken.KrakenExchange;
 import org.knowm.xchange.poloniex.PoloniexExchange;
-import org.knowm.xchange.quadrigacx.QuadrigaCxExchange;
 import org.knowm.xchange.service.marketdata.MarketDataService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,7 +48,7 @@ public class ArbMonitor {
         this.TargetExchangeNames.add("gdax");
         this.TargetExchangeNames.add("kraken");
         this.TargetExchangeNames.add("poloinex");
-        this.TargetExchangeNames.add("quadrigacx");
+//        this.TargetExchangeNames.add("quadrigacx");
 
         this.Exchanges = new HashMap<>();
         this.Exchanges.put("bitstamp", ExchangeFactory.INSTANCE.createExchange(BitstampExchange.class.getName()));
@@ -57,7 +56,7 @@ public class ArbMonitor {
         this.Exchanges.put("gdax", ExchangeFactory.INSTANCE.createExchange(GDAXExchange.class.getName()));
         this.Exchanges.put("poloinex", ExchangeFactory.INSTANCE.createExchange(PoloniexExchange.class.getName()));
         this.Exchanges.put("bitfinex", ExchangeFactory.INSTANCE.createExchange(BitfinexExchange.class.getName()));
-        this.Exchanges.put("quadrigacx", ExchangeFactory.INSTANCE.createExchange(QuadrigaCxExchange.class.getName()));
+//        this.Exchanges.put("quadrigacx", ExchangeFactory.INSTANCE.createExchange(QuadrigaCxExchange.class.getName()));
         this.Exchanges.put("btce", ExchangeFactory.INSTANCE.createExchange(BTCEExchange.class.getName()));
         this.Exchanges.put("bittrex", ExchangeFactory.INSTANCE.createExchange(BittrexExchange.class.getName()));
 
@@ -115,9 +114,10 @@ public class ArbMonitor {
                 tick = targetMds.getTicker(reversePair);
                 quote = new Quote(quoteCcy, baseCcy, tick.getBid(), tick.getAsk());
             } else {
-                throw new PairNotSupportedException("The pair: " + baseCcy + "/" + quoteCcy + "or its reverse is not " +
+                throw new PairNotSupportedException("The pair: " + baseCcy + "/" + quoteCcy + " or its reverse is not" +
+                        " " +
                         "supported" +
-                        "in the API. Please remove it from the file. ");
+                        " in the API for the exchange: " + exchangeName + ".Please remove it from the file. ");
             }
             quotes.add(quote);
         }

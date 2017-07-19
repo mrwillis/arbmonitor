@@ -8,7 +8,6 @@ public class Main {
 
     public static void main(String[] args) {
         try {
-            Logger.error("afefeaf");
             ArbMonitor monitor = new ArbMonitor();
             monitor.Monitor();
         } catch (Exception e) {
