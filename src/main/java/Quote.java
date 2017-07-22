@@ -1,3 +1,5 @@
+import org.knowm.xchange.currency.CurrencyPair;
+
 import java.math.BigDecimal;
 
 /**
@@ -5,35 +7,35 @@ import java.math.BigDecimal;
  */
 public class Quote {
 
-    private String Base;
-    private String Quote;
     private BigDecimal Bid;
     private BigDecimal Ask;
+    private CurrencyPair Pair;
+    private String Exchange;
 
-    public Quote(String base, String quote, BigDecimal bid, BigDecimal ask) {
-        Base = base;
-        Quote = quote;
+    public Quote(BigDecimal bid, BigDecimal ask, String exchange, CurrencyPair pair) {
         Bid = bid;
         Ask = ask;
+        Exchange = exchange;
+        Pair = pair;
     }
 
-    public String getBase() {
-        return Base;
+    CurrencyPair getPair() {
+        return Pair;
     }
 
-    public void setBase(String base) {
-        Base = base;
+    public void setPair(CurrencyPair pair) {
+        Pair = pair;
     }
 
-    public String getQuote() {
-        return Quote;
+    public String getExchange() {
+        return Exchange;
     }
 
-    public void setQuote(String quote) {
-        Quote = quote;
+    public void setExchange(String exchange) {
+        Exchange = exchange;
     }
 
-    private BigDecimal getBid() {
+    BigDecimal getBid() {
         return Bid;
     }
 
@@ -41,11 +43,22 @@ public class Quote {
         Bid = bid;
     }
 
-    private BigDecimal getAsk() {
+    public BigDecimal getAsk() {
         return Ask;
     }
 
     public void setAsk(BigDecimal ask) {
         Ask = ask;
+    }
+
+    public boolean isSamePair(Quote other) {
+
+        if (other.getPair() == this.getPair()) { // Directly compare base to base and counter to counter
+            return true;
+        } else if (other.getPair() == new CurrencyPair(other.getPair().counter, other.getPair().base)) { // Check
+            // reverse
+            return true;
+        }
+        return false;
     }
 }
