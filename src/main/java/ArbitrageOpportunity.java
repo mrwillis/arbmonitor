@@ -23,7 +23,11 @@ public class ArbitrageOpportunity {
         this.SellExchange = sellQuote.getExchange();
         this.SellExchangePair = sellQuote.getPair().toString();
         this.BuyPrice = buyQuote.getAsk();
+        this.BuyFee = buyQuote.getTakerFee();
+        this.SellFee = sellQuote.getTakerFee();
         this.SellPrice = sellQuote.getBid();
+        this.Spread = (this.SellPrice.subtract(this.SellFee.multiply(this.SellPrice)).subtract(this.BuyPrice.add(this
+                .BuyFee.multiply(this.BuyPrice)))).divide(this.BuyPrice, BigDecimal.ROUND_HALF_EVEN);
     }
 
     public Date getAsOf() {

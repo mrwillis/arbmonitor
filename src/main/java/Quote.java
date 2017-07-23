@@ -12,11 +12,22 @@ public class Quote {
     private CurrencyPair Pair;
     private String Exchange;
 
-    public Quote(BigDecimal bid, BigDecimal ask, String exchange, CurrencyPair pair) {
+    private BigDecimal TakerFee;
+
+    public Quote(BigDecimal bid, BigDecimal ask, CurrencyPair pair, String exchange, BigDecimal takerFee) {
         Bid = bid;
         Ask = ask;
-        Exchange = exchange;
         Pair = pair;
+        Exchange = exchange;
+        TakerFee = takerFee;
+    }
+
+    public BigDecimal getTakerFee() {
+        return TakerFee;
+    }
+
+    public void setTakerFee(BigDecimal takerFee) {
+        TakerFee = takerFee;
     }
 
     CurrencyPair getPair() {

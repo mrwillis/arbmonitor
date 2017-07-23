@@ -110,12 +110,12 @@ public class ArbMonitor {
             Ticker tick;
             if (availablePairs.contains(pair)) {
                 tick = targetMds.getTicker(pair);
-                quote = new Quote(tick.getBid(), tick.getAsk(), exchangeName, pair);
+                quote = new Quote(tick.getBid(), tick.getAsk(), pair, exchangeName, schedule.getTakerFee());
             } else if (availablePairs.contains(new CurrencyPair(quoteCcy, baseCcy))) {
                 // Try to flip the pair
                 CurrencyPair reversePair = new CurrencyPair(quoteCcy, baseCcy);
                 tick = targetMds.getTicker(reversePair);
-                quote = new Quote(tick.getBid(), tick.getAsk(), exchangeName, reversePair);
+                quote = new Quote(tick.getBid(), tick.getAsk(), reversePair, exchangeName, schedule.getTakerFee());
             } else {
                 throw new PairNotSupportedException("The pair: " + baseCcy + "/" + quoteCcy + " or its reverse is not" +
                         " " +

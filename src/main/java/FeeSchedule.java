@@ -17,7 +17,7 @@ public class FeeSchedule {
     private BigDecimal MakerFee;
 
     @CsvBindByName(column = "Taker")
-    private double TakerFee;
+    private BigDecimal TakerFee;
 
     public String getExchange() {
         return Exchange;
@@ -51,11 +51,11 @@ public class FeeSchedule {
         MakerFee = makerFee;
     }
 
-    public double getTakerFee() {
+    public BigDecimal getTakerFee() {
         return TakerFee;
     }
 
-    public void setTakerFee(double takerFee) {
+    public void setTakerFee(BigDecimal takerFee) {
         TakerFee = takerFee;
     }
 }
