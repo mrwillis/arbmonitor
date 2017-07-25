@@ -19,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
+import java.math.BigDecimal;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Paths;
@@ -38,10 +39,12 @@ public class ArbMonitor {
     private HashMap<String, MarketDataService> ExchangeServices;
     private HashMap<String, Exchange> Exchanges;
     private HashMap<String, List<CurrencyPair>> AvailablePairs;
+    private BigDecimal arbitrageThreshold;
 
-    public ArbMonitor() throws URISyntaxException,
+    public ArbMonitor(String arbitrageThreshold) throws URISyntaxException,
             IOException {
 
+        this.arbitrageThreshold = new BigDecimal(arbitrageThreshold);
         this.TargetExchangeNames = new ArrayList<>();
         this.TargetExchangeNames.add("bitstamp");
         this.TargetExchangeNames.add("bitfinex");
@@ -50,7 +53,6 @@ public class ArbMonitor {
         this.TargetExchangeNames.add("gdax");
         this.TargetExchangeNames.add("kraken");
         this.TargetExchangeNames.add("poloinex");
-//        this.TargetExchangeNames.add("quadrigacx");
 
         this.Exchanges = new HashMap<>();
         this.Exchanges.put("bitstamp", ExchangeFactory.INSTANCE.createExchange(BitstampExchange.class.getName()));
@@ -58,7 +60,6 @@ public class ArbMonitor {
         this.Exchanges.put("gdax", ExchangeFactory.INSTANCE.createExchange(GDAXExchange.class.getName()));
         this.Exchanges.put("poloinex", ExchangeFactory.INSTANCE.createExchange(PoloniexExchange.class.getName()));
         this.Exchanges.put("bitfinex", ExchangeFactory.INSTANCE.createExchange(BitfinexExchange.class.getName()));
-//        this.Exchanges.put("quadrigacx", ExchangeFactory.INSTANCE.createExchange(QuadrigaCxExchange.class.getName()));
         this.Exchanges.put("btce", ExchangeFactory.INSTANCE.createExchange(BTCEExchange.class.getName()));
         this.Exchanges.put("bittrex", ExchangeFactory.INSTANCE.createExchange(BittrexExchange.class.getName()));
 
@@ -79,7 +80,7 @@ public class ArbMonitor {
 
         for (String exchange : exchangeList) {
             URL resource = ArbMonitor.class.getResource(exchange + "_fees.csv");
-            String path = null;
+            String path;
             path = Paths.get(resource.toURI()).toFile().getPath();
             //noinspection unchecked
             List<FeeSchedule> beans = new CsvToBeanBuilder(new FileReader(path)).withType(FeeSchedule
@@ -133,6 +134,7 @@ public class ArbMonitor {
         Writer writer = new FileWriter("opportunities.csv", true);
         StatefulBeanToCsv beanToCsv = new StatefulBeanToCsvBuilder(writer).build();
 
+        //noinspection InfiniteLoopStatement
         while (true) {
             List<ArbitrageOpportunity> opportunitiesToWrite = new ArrayList<>();
             ArrayList<Quote> quotes = new ArrayList<>();
@@ -176,20 +178,30 @@ public class ArbMonitor {
                         for (int j = i + 1; j < quoteBucket.size(); j++) {
                             Quote firstQuote = quoteBucket.get(i);
                             Quote secondQuote = quoteBucket.get(j);
+                            ArbitrageOpportunity opportunity;
                             if (secondQuote.getBid().compareTo(firstQuote.getAsk()) > 0) {
-                                opportunitiesToWrite.add(new ArbitrageOpportunity(firstQuote, secondQuote));
-                                Logger.info("BUY: " + firstQuote.getPair().toString() + " on exchange " + firstQuote
-                                        .getExchange() + " at: " + firstQuote.getAsk().toString() + ". \nSELL: " +
-                                        secondQuote.getPair().toString() + " on exchange " + secondQuote.getExchange
-                                        () + " at: " + secondQuote.getBid().toString());
+                                opportunity = new ArbitrageOpportunity(firstQuote, secondQuote);
+                                // Check additionally that the spread is greater than 1%
+                                if (opportunity.getSpread().compareTo(this.arbitrageThreshold) >= 0) {
+                                    opportunitiesToWrite.add(new ArbitrageOpportunity(firstQuote, secondQuote));
+                                    Logger.info("BUY: " + firstQuote.getPair().toString() + " on exchange " + firstQuote
+                                            .getExchange() + " at: " + firstQuote.getAsk().toString() + ". \nSELL: " +
+                                            secondQuote.getPair().toString() + " on exchange " + secondQuote.getExchange
+                                            () + " at: " + secondQuote.getBid().toString());
+                                }
                             } else if (firstQuote.getBid().compareTo(secondQuote.getAsk()) > 0) {
-                                opportunitiesToWrite.add(new ArbitrageOpportunity(secondQuote, firstQuote));
-                                Logger.info("BUY: " + secondQuote.getPair().toString() + " on exchange " +
-                                        secondQuote.getExchange() + " at: " + secondQuote.getAsk().toString() + ". " +
-                                        "\nSELL: " +
-                                        firstQuote.getPair().toString() + " on exchange " + firstQuote.getExchange()
-                                        + " at: "
-                                        + firstQuote.getBid().toString());
+                                opportunity = new ArbitrageOpportunity(secondQuote, firstQuote);
+                                // Check additionally that the spread is greater than 1%
+                                if (opportunity.getSpread().compareTo(this.arbitrageThreshold) >= 0) {
+                                    opportunitiesToWrite.add(new ArbitrageOpportunity(secondQuote, firstQuote));
+                                    Logger.info("BUY: " + secondQuote.getPair().toString() + " on exchange " +
+                                            secondQuote.getExchange() + " at: " + secondQuote.getAsk().toString() + "" +
+                                            ". " +
+                                            "\nSELL: " +
+                                            firstQuote.getPair().toString() + " on exchange " + firstQuote.getExchange()
+                                            + " at: "
+                                            + firstQuote.getBid().toString());
+                                }
                             }
                         }
                     }
