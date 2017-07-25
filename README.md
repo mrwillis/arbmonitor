@@ -46,4 +46,11 @@ are using snapshots from the sonatype repository, so they may not be stable.
 </Configuration>
 ```
 
+## Configuration
+You must make a `config.properites` file in your resources folder. Currently the supported options are:
+
+| Property Name      | Values    | Description                                                                            |
+|--------------------|-----------|----------------------------------------------------------------------------------------|
+| arbitrageThreshold | 0 < x < 1 | Program will log opportunities if the spread (fee adjusted) is greater than this value |
+
 
